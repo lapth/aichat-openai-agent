@@ -1,0 +1,29 @@
+# Dependencies
+/node_modules
+
+# Build
+/dist
+/build
+packages/pubsub/dist/
+.env
+dev-secrets.json
+dev-parameters.json
+.npmrc
+*.tsbuildinfo
+
+# Turborepo
+.turbo
+/out
+
+# IDE / OS metadata
+.DS_Store
+.vscode/
+.idea/
+
+# Localstack
+.localstack/
+
+# Temp folder on local
+.temp
+/local
+/tmp
