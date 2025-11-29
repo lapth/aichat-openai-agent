@@ -5,14 +5,13 @@
   "description": "MCP-based invoice and customer management system",
   "scripts": {
     "build": "tsc",
-    "start:customer": "node dist/customer-server.js",
-    "start:invoice": "node dist/invoice-server.js",
-    "start:main": "node dist/main-client.js",
-    "dev": "npm run build && npm run start:main"
+    "start:agent": "node dist/main-agent.js",
+    "dev": "npm run build && npm run start:agent"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
-    "openai": "^4.20.0",
+    "@openai/agents": "latest",
+    "zod": "^3.22.4",
     "dotenv": "^16.3.1",
     "express": "^4.18.2"
   },
