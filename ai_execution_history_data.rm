@@ -110,6 +110,7 @@
 ]
 
 # Agent as agent but the agents know each other
+
 📊 Usage Statistics:
   - Input Tokens: 2148
   - Output Tokens: 198
@@ -227,6 +228,7 @@
 ]
 
 # Agent as agent but the agents don't know each other
+
 📊 Usage Statistics:
   - Input Tokens: 3794
   - Output Tokens: 254
