@@ -8,7 +8,7 @@ import {
   updateInvoiceStatus,
 } from "../tools/invoice-tools.js";
 
-// --- 1. Define Agents (initially without handoffs to avoid circular reference issues during instantiation) ---
+// --- 1. Define Agents (initially without handoffs) ---
 
 export const customerAgent = new Agent({
   name: "CustomerAgent",
@@ -18,9 +18,11 @@ Your responsibilities:
 - Create, retrieve, and list customers.
 - Check the conversation history to see if a customer has already been created or found.
 
-Collaboration:
-- If the user wants to perform an invoice operation (create, list, etc.), HANDOFF to the InvoiceAgent.
-- If you have finished your specific task and there are no more customer-specific requests, HANDOFF back to the MainAssistant to summarize or proceed.
+CRITICAL HANDOFF RULES:
+- You are a "Leaf Node" in the system. You do NOT communicate with other specialists.
+- When you have successfully completed your task (e.g., created a customer), you MUST immediately handoff back to the Orchestrator.
+- Use the tool \`transfer_to_Orchestrator\` to return control.
+- DO NOT just say "I will transfer you". YOU MUST CALL THE TOOL.
 `.trim(),
   tools: [createCustomer, getCustomer, listCustomers],
 });
@@ -33,45 +35,52 @@ Your responsibilities:
 - Create, retrieve, list, and update invoices.
 - Check the conversation history for customer details (ID, name) before creating an invoice.
 
-Collaboration:
-- If you need a customer ID and it's not in the history, HANDOFF to the CustomerAgent to find or create the customer.
-- If you have finished your specific task, HANDOFF back to the MainAssistant to summarize or proceed.
+CRITICAL HANDOFF RULES:
+- You are a "Leaf Node" in the system. You do NOT communicate with other specialists.
+- If you need a customer ID and it's not in the history, HANDOFF back to the Orchestrator (tool: \`transfer_to_Orchestrator\`) and ask them to find the customer first.
+- When you have successfully completed your task, HANDOFF back to the Orchestrator (tool: \`transfer_to_Orchestrator\`).
+- DO NOT just say "I will transfer you". YOU MUST CALL THE TOOL.
 `.trim(),
   tools: [createInvoice, getInvoice, listInvoices, updateInvoiceStatus],
 });
 
 export const mainAgent = new Agent({
-  name: "MainAssistant",
+  name: "Orchestrator",
   instructions: `
-You are the Lead Orchestrator.
+You are the Central Orchestrator.
 Your responsibilities:
-- Analyze the user's high-level request.
-- Delegate tasks to the appropriate specialist (CustomerAgent or InvoiceAgent).
-- Maintain the overall flow of the conversation.
+- Receive the user's high-level request.
+- Route the request to the appropriate specialist (CustomerAgent or InvoiceAgent).
+- Maintain the overall state of the workflow.
 
-Collaboration:
-- If the user mentions customer details or operations, HANDOFF to CustomerAgent.
-- If the user mentions invoice details or operations, HANDOFF to InvoiceAgent.
-- When specialists return control to you, summarize the actions taken and ask if the user needs anything else.
+ROUTING LOGIC:
+1. Analyze the conversation history.
+2. If the user wants to do X, and X belongs to CustomerAgent, handoff to CustomerAgent.
+3. If the user wants to do Y, and Y belongs to InvoiceAgent, handoff to InvoiceAgent.
+4. If a specialist returns control to you:
+   - CHECK: Did they finish their job?
+   - CHECK: Is there a next step in the original user request?
+   - IF yes, handoff to the next specialist.
+   - IF no (all done), summarize the results to the user.
+
+Example Flow:
+User: "Create customer Bob and invoice for him."
+1. You -> transfer_to_CustomerAgent
+2. CustomerAgent (creates Bob) -> transfer_to_Orchestrator
+3. You (see Bob created, see pending invoice request) -> transfer_to_InvoiceAgent
+4. InvoiceAgent (creates invoice) -> transfer_to_Orchestrator
+5. You (see all done) -> "Success! Created Bob and Invoice #123."
 `.trim(),
   // Initial handoffs will be set below
 });
 
-// --- 2. Wire up Mutual Handoffs ---
+// --- 2. Wire up Hub-and-Spoke Handoffs ---
 
-// CustomerAgent can handoff to InvoiceAgent (for next step) or MainAssistant (to finish)
-customerAgent.handoffs = [
-  handoff(invoiceAgent),
-  handoff(mainAgent),
-];
+// Specialists only handoff to the Hub (Orchestrator)
+customerAgent.handoffs = [handoff(mainAgent)];
+invoiceAgent.handoffs = [handoff(mainAgent)];
 
-// InvoiceAgent can handoff to CustomerAgent (if missing info) or MainAssistant (to finish)
-invoiceAgent.handoffs = [
-  handoff(customerAgent),
-  handoff(mainAgent),
-];
-
-// MainAssistant can handoff to both specialists
+// Hub (Orchestrator) hands off to all Specialists
 mainAgent.handoffs = [
   handoff(customerAgent),
   handoff(invoiceAgent),
