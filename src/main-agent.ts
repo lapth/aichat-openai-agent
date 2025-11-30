@@ -40,7 +40,29 @@ async function main() {
         const result = await run(mainAgent, [...history, { role: "user", content: input }]);
         history = result.history;
 
-        console.log("\n History: ", JSON.stringify(history, null, 2));
+        // Calculate usage
+        let totalInputTokens = 0;
+        let totalOutputTokens = 0;
+        let totalTokens = 0;
+
+        const rawResponses = (result as any).rawResponses;
+        if (rawResponses && Array.isArray(rawResponses)) {
+          for (const response of rawResponses) {
+            if (response.usage) {
+              totalInputTokens += response.usage.inputTokens || 0;
+              totalOutputTokens += response.usage.outputTokens || 0;
+              totalTokens += response.usage.totalTokens || 0;
+            }
+          }
+        }
+
+        console.log("\n📊 Usage Statistics:");
+        console.log(`  - Input Tokens: ${totalInputTokens}`);
+        console.log(`  - Output Tokens: ${totalOutputTokens}`);
+        console.log(`  - Total Tokens: ${totalTokens}`);
+
+        console.log("\n📜 Conversation History:");
+        console.log(JSON.stringify(history, null, 2));
 
         console.log("\n💬 Assistant:", result.finalOutput);
       } catch (error) {
