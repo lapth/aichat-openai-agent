@@ -1,5 +1,5 @@
 // src/agents/system.ts
-import { Agent } from "@openai/agents";
+import { Agent, handoff } from "@openai/agents";
 import { createCustomer, getCustomer, listCustomers } from "../tools/customer-tools.js";
 import {
   createInvoice,
@@ -8,45 +8,71 @@ import {
   updateInvoiceStatus,
 } from "../tools/invoice-tools.js";
 
-// 1. Define Specialist Agents
+// --- 1. Define Agents (initially without handoffs to avoid circular reference issues during instantiation) ---
+
 export const customerAgent = new Agent({
   name: "CustomerAgent",
-  instructions: "You are a specialist in managing customer data. Execute the requested operation and return the result.",
+  instructions: `
+You are the Customer Specialist.
+Your responsibilities:
+- Create, retrieve, and list customers.
+- Check the conversation history to see if a customer has already been created or found.
+
+Collaboration:
+- If the user wants to perform an invoice operation (create, list, etc.), HANDOFF to the InvoiceAgent.
+- If you have finished your specific task and there are no more customer-specific requests, HANDOFF back to the MainAssistant to summarize or proceed.
+`.trim(),
   tools: [createCustomer, getCustomer, listCustomers],
 });
 
 export const invoiceAgent = new Agent({
   name: "InvoiceAgent",
-  instructions: "You are a specialist in managing invoices. Execute the requested operation and return the result.",
+  instructions: `
+You are the Invoice Specialist.
+Your responsibilities:
+- Create, retrieve, list, and update invoices.
+- Check the conversation history for customer details (ID, name) before creating an invoice.
+
+Collaboration:
+- If you need a customer ID and it's not in the history, HANDOFF to the CustomerAgent to find or create the customer.
+- If you have finished your specific task, HANDOFF back to the MainAssistant to summarize or proceed.
+`.trim(),
   tools: [createInvoice, getInvoice, listInvoices, updateInvoiceStatus],
 });
 
-// 2. Define Main Agent using Specialists as Tools
 export const mainAgent = new Agent({
   name: "MainAssistant",
-  instructions: `You are the orchestrator for customer and invoice tasks.
-  
-  You have access to two specialist agents as tools:
-  1. CustomerAgent: For customer operations.
-  2. InvoiceAgent: For invoice operations.
-  
-  Your goal is to complete the user's request by calling these agents in the correct order.
-  
-  Example Workflow: "Create invoice for new customer"
-  1. Call CustomerAgent to create the customer.
-  2. Use the returned customer ID to call InvoiceAgent to create the invoice.
-  3. Respond to the user with the final result.
-  
-  Always complete the full workflow.`,
-  tools: [
-    customerAgent.asTool({
-      toolName: "call_customer_agent",
-      toolDescription: "Delegate a task to the Customer Agent. Provide a natural language instruction.",
-    }),
-    invoiceAgent.asTool({
-      toolName: "call_invoice_agent",
-      toolDescription: "Delegate a task to the Invoice Agent. Provide a natural language instruction.",
-    }),
-  ],
-  model: process.env.OPENAI_MODEL || "gpt-4-turbo-preview",
+  instructions: `
+You are the Lead Orchestrator.
+Your responsibilities:
+- Analyze the user's high-level request.
+- Delegate tasks to the appropriate specialist (CustomerAgent or InvoiceAgent).
+- Maintain the overall flow of the conversation.
+
+Collaboration:
+- If the user mentions customer details or operations, HANDOFF to CustomerAgent.
+- If the user mentions invoice details or operations, HANDOFF to InvoiceAgent.
+- When specialists return control to you, summarize the actions taken and ask if the user needs anything else.
+`.trim(),
+  // Initial handoffs will be set below
 });
+
+// --- 2. Wire up Mutual Handoffs ---
+
+// CustomerAgent can handoff to InvoiceAgent (for next step) or MainAssistant (to finish)
+customerAgent.handoffs = [
+  handoff(invoiceAgent),
+  handoff(mainAgent),
+];
+
+// InvoiceAgent can handoff to CustomerAgent (if missing info) or MainAssistant (to finish)
+invoiceAgent.handoffs = [
+  handoff(customerAgent),
+  handoff(mainAgent),
+];
+
+// MainAssistant can handoff to both specialists
+mainAgent.handoffs = [
+  handoff(customerAgent),
+  handoff(invoiceAgent),
+];
