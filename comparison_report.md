@@ -1,6 +1,6 @@
 # Multi-Agent Approach Comparison
 
-Based on the execution traces in [ai_execution_history_data.rm](ai_execution_history_data.rm), here is a comparative analysis of the three architectures.
+Based on the execution traces in [ai_execution_history_data.md](ai_execution_history_data.md), here is a comparative analysis of the three architectures.
 
 ## Overview of Approaches
 
