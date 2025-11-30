@@ -1,7 +1,7 @@
 // src/tools/invoice-tools.ts
 import { tool } from "@openai/agents";
 import { z } from "zod";
-import { invoices, Invoice, customers } from "../agents/data.js";
+import { invoices, Invoice, customers } from "../data/store.js";
 
 export const createInvoice = tool({
   name: "create_invoice",
@@ -18,8 +18,7 @@ export const createInvoice = tool({
     taxRate: z.number().nullable().describe("Tax rate (%, default 10%)"),
   }),
   execute: async ({ customerId, items, taxRate }) => {
-    // Verify customer exists
-    console.info("Executing createInvoice tool: ", { customerId, items, taxRate });
+    console.log('[create_invoice] Executing with params:', { customerId, items, taxRate });
     const customer = customers.get(customerId);
     const customerName = customer ? customer.name : "Unknown";
 
@@ -58,6 +57,7 @@ export const getInvoice = tool({
     id: z.string().describe("Invoice ID"),
   }),
   execute: async ({ id }) => {
+    console.log('[get_invoice] Executing with params:', { id });
     const invoice = invoices.get(id);
     if (!invoice) {
       return JSON.stringify({ error: "Invoice not found" });
@@ -73,6 +73,7 @@ export const listInvoices = tool({
     customerId: z.string().nullable().describe("Filter by customer ID"),
   }),
   execute: async ({ customerId }) => {
+    console.log('[list_invoices] Executing with params:', { customerId });
     let allInvoices = Array.from(invoices.values());
     if (customerId) {
       allInvoices = allInvoices.filter((inv) => inv.customerId === customerId);
@@ -89,6 +90,7 @@ export const updateInvoiceStatus = tool({
     status: z.enum(["draft", "sent", "paid"]).describe("New status"),
   }),
   execute: async ({ id, status }) => {
+    console.log('[update_invoice_status] Executing with params:', { id, status });
     const invoice = invoices.get(id);
     if (!invoice) {
       return JSON.stringify({ error: "Invoice not found" });
@@ -96,5 +98,18 @@ export const updateInvoiceStatus = tool({
     invoice.status = status;
     invoices.set(id, invoice);
     return JSON.stringify(invoice, null, 2);
+  },
+});
+
+export const deleteInvoice = tool({
+  name: "delete_invoice",
+  description: "Delete an invoice",
+  parameters: z.object({
+    id: z.string().describe("Invoice ID"),
+  }),
+  execute: async ({ id }) => {
+    console.log('[delete_invoice] Executing with params:', { id });
+    const deleted = invoices.delete(id);
+    return JSON.stringify({ success: deleted }, null, 2);
   },
 });

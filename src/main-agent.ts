@@ -18,7 +18,7 @@ async function main() {
     output: process.stdout,
   });
 
-  console.log("\n🚀 Multi-Agent System - AI-Powered Assistant");
+  console.log("\n🚀 Multi-Agent System - AI-Powered Assistant (5 Agents)");
   console.log("Enter your request (or 'exit' to quit):\n");
 
   let history: any[] = [];
@@ -37,7 +37,13 @@ async function main() {
 
       try {
         console.log("🤖 Processing...");
-        const result = await run(mainAgent, [...history, { role: "user", content: input }]);
+
+        // Enforce max turns to prevent infinite loops
+        const MAX_TURNS = 20;
+        const result = await run(mainAgent, [...history, { role: "user", content: input }], {
+          maxTurns: MAX_TURNS
+        });
+
         history = result.history;
 
         // Calculate usage
