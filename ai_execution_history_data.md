@@ -6,6 +6,7 @@
   - Total Tokens: 1521
 
 📜 Conversation History:
+```json
 [
   {
     "role": "user",
@@ -108,6 +109,7 @@
     "providerData": {}
   }
 ]
+```
 
 # Agent as agent but the agents know each other
 
@@ -117,6 +119,7 @@
   - Total Tokens: 2346
 
 📜 Conversation History:
+```json
 [
   {
     "role": "user",
@@ -226,7 +229,7 @@
     "providerData": {}
   }
 ]
-
+```
 # Agent as agent but the agents don't know each other
 
 📊 Usage Statistics:
@@ -235,6 +238,7 @@
   - Total Tokens: 4048
 
 📜 Conversation History:
+```json
 [
   {
     "role": "user",
@@ -388,3 +392,4 @@
     "providerData": {}
   }
 ]
+```
