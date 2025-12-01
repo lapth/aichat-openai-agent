@@ -4,9 +4,10 @@
   "type": "module",
   "description": "MCP-based invoice and customer management system",
   "scripts": {
-    "build": "tsc",
-    "start:agent": "node dist/main-agent.js",
-    "dev": "npm run build && npm run start:agent"
+    "build": "rm -rf dist && tsc",
+    "start:agent": "node dist/src/main-agent.js",
+    "dev": "npm run build && npm run start:agent",
+    "generate-data": "npx -y tsx scripts/generate-mock-data.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",

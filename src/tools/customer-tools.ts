@@ -44,21 +44,33 @@ export const getCustomer = tool({
 
 export const listCustomers = tool({
   name: "list_customers",
-  description: "List all customers or search by name/email",
+  description: "Search for customers by name, email, or phone. REQUIRED: Must provide a non-empty search query. Returns max 20 matching customers.",
   parameters: z.object({
-    query: z.string().nullable().describe("Search query for name or email"),
+    query: z.string().describe("Search query for name, email, or phone number (required, cannot be empty). Use this to find specific customers."),
   }),
   execute: async ({ query }) => {
     console.log('[list_customers] Executing with params:', { query });
-    let allCustomers = Array.from(customers.values());
-    if (query) {
-      const lowerQuery = query.toLowerCase();
-      allCustomers = allCustomers.filter(c =>
-        c.name.toLowerCase().includes(lowerQuery) ||
-        c.email.toLowerCase().includes(lowerQuery)
-      );
+
+    // Validate query is not empty
+    if (!query || query.trim() === '') {
+      return JSON.stringify({ error: "Query parameter is required and cannot be empty. Please provide a search term." }, null, 2);
     }
-    return JSON.stringify(allCustomers, null, 2);
+
+    const startTime = Date.now();
+    const lowerQuery = query.toLowerCase();
+    let results = Array.from(customers.values()).filter(c =>
+      c.name.toLowerCase().includes(lowerQuery) ||
+      c.email.toLowerCase().includes(lowerQuery) ||
+      c.phone.toLowerCase().includes(lowerQuery)
+    );
+
+    // Limit to max 20 results
+    const totalFound = results.length;
+    results = results.slice(0, 20);
+
+    const elapsed = Date.now() - startTime;
+    console.log(`[list_customers] Found ${totalFound} results (returning ${results.length}) in ${elapsed}ms`);
+    return JSON.stringify(results, null, 2);
   },
 });
 

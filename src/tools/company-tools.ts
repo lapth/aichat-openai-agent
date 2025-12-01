@@ -35,18 +35,33 @@ export const getCompany = tool({
 
 export const listCompanies = tool({
   name: "list_companies",
-  description: "List companies or search by name",
+  description: "Search for companies by name, address, or tax ID. REQUIRED: Must provide a non-empty search query. Returns max 20 matching companies.",
   parameters: z.object({
-    query: z.string().nullable().describe("Search query"),
+    query: z.string().describe("Search query for company name, address, or tax ID (required, cannot be empty). Use this to find specific companies."),
   }),
   execute: async ({ query }) => {
     console.log('[list_companies] Executing with params:', { query });
-    let allCompanies = Array.from(companies.values());
-    if (query) {
-      const lower = query.toLowerCase();
-      allCompanies = allCompanies.filter(c => c.name.toLowerCase().includes(lower));
+
+    // Validate query is not empty
+    if (!query || query.trim() === '') {
+      return JSON.stringify({ error: "Query parameter is required and cannot be empty. Please provide a search term." }, null, 2);
     }
-    return JSON.stringify(allCompanies, null, 2);
+
+    const startTime = Date.now();
+    const lower = query.toLowerCase();
+    let results = Array.from(companies.values()).filter(c =>
+      c.name.toLowerCase().includes(lower) ||
+      c.address.toLowerCase().includes(lower) ||
+      c.taxId.toLowerCase().includes(lower)
+    );
+
+    // Limit to max 20 results
+    const totalFound = results.length;
+    results = results.slice(0, 20);
+
+    const elapsed = Date.now() - startTime;
+    console.log(`[list_companies] Found ${totalFound} results (returning ${results.length}) in ${elapsed}ms`);
+    return JSON.stringify(results, null, 2);
   },
 });
 

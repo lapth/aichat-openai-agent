@@ -68,17 +68,34 @@ export const getInvoice = tool({
 
 export const listInvoices = tool({
   name: "list_invoices",
-  description: "List all invoices, optionally filter by customerId",
+  description: "Search for invoices by customer ID, customer name, invoice ID, or status. REQUIRED: Must provide a non-empty search query. Returns max 20 matching invoices.",
   parameters: z.object({
-    customerId: z.string().nullable().describe("Filter by customer ID"),
+    query: z.string().describe("Search query for customer ID, customer name, invoice ID, or status (draft/sent/paid) (required, cannot be empty). Use this to find specific invoices."),
   }),
-  execute: async ({ customerId }) => {
-    console.log('[list_invoices] Executing with params:', { customerId });
-    let allInvoices = Array.from(invoices.values());
-    if (customerId) {
-      allInvoices = allInvoices.filter((inv) => inv.customerId === customerId);
+  execute: async ({ query }) => {
+    console.log('[list_invoices] Executing with params:', { query });
+
+    // Validate query is not empty
+    if (!query || query.trim() === '') {
+      return JSON.stringify({ error: "Query parameter is required and cannot be empty. Please provide a search term." }, null, 2);
     }
-    return JSON.stringify(allInvoices, null, 2);
+
+    const startTime = Date.now();
+    const lowerQuery = query.toLowerCase();
+    let results = Array.from(invoices.values()).filter((inv) =>
+      inv.id.toLowerCase().includes(lowerQuery) ||
+      inv.customerId.toLowerCase().includes(lowerQuery) ||
+      (inv.customerName && inv.customerName.toLowerCase().includes(lowerQuery)) ||
+      inv.status.toLowerCase().includes(lowerQuery)
+    );
+
+    // Limit to max 20 results
+    const totalFound = results.length;
+    results = results.slice(0, 20);
+
+    const elapsed = Date.now() - startTime;
+    console.log(`[list_invoices] Found ${totalFound} results (returning ${results.length}) in ${elapsed}ms`);
+    return JSON.stringify(results, null, 2);
   },
 });
 

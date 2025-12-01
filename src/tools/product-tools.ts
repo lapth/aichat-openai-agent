@@ -35,18 +35,32 @@ export const getProduct = tool({
 
 export const listProducts = tool({
   name: "list_products",
-  description: "List products or search by name/category",
+  description: "Search for products by name or category. REQUIRED: Must provide a non-empty search query. Returns max 20 matching products.",
   parameters: z.object({
-    query: z.string().nullable().describe("Search query"),
+    query: z.string().describe("Search query for product name or category (required, cannot be empty). Use this to find specific products."),
   }),
   execute: async ({ query }) => {
     console.log('[list_products] Executing with params:', { query });
-    let allProducts = Array.from(products.values());
-    if (query) {
-      const lower = query.toLowerCase();
-      allProducts = allProducts.filter(p => p.name.toLowerCase().includes(lower) || p.category.toLowerCase().includes(lower));
+
+    // Validate query is not empty
+    if (!query || query.trim() === '') {
+      return JSON.stringify({ error: "Query parameter is required and cannot be empty. Please provide a search term." }, null, 2);
     }
-    return JSON.stringify(allProducts, null, 2);
+
+    const startTime = Date.now();
+    const lower = query.toLowerCase();
+    let results = Array.from(products.values()).filter(p =>
+      p.name.toLowerCase().includes(lower) ||
+      p.category.toLowerCase().includes(lower)
+    );
+
+    // Limit to max 20 results
+    const totalFound = results.length;
+    results = results.slice(0, 20);
+
+    const elapsed = Date.now() - startTime;
+    console.log(`[list_products] Found ${totalFound} results (returning ${results.length}) in ${elapsed}ms`);
+    return JSON.stringify(results, null, 2);
   },
 });
 
