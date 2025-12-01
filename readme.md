@@ -16,27 +16,24 @@ graph TD
     Orchestrator <-->|Handoff| Invoice[📄 Invoice Agent<br/>CRUD + Search]
     Orchestrator <-->|Handoff| Product[📦 Product Agent<br/>CRUD + Search]
     Orchestrator <-->|Handoff| Company[🏢 Company Agent<br/>CRUD + Search]
-    Orchestrator <-->|Handoff| User[👤 User Agent<br/>CRUD + Search]
-    
-    %% Specialists do NOT communicate directly
-    Customer -.x Invoice
-    Customer -.x Product
-    Invoice -.x Product
+    Orchestrator <-->|Handoff| UserAgent[👤 User Agent<br/>CRUD + Search]
     
     Customer --> DB[(📊 In-Memory Store<br/>1000 Customers<br/>500 Products<br/>2000 Invoices<br/>100 Companies<br/>50 Users)]
     Invoice --> DB
     Product --> DB
     Company --> DB
-    User --> DB
+    UserAgent --> DB
     
     style Orchestrator fill:#4CAF50,stroke:#2E7D32,stroke-width:3px,color:#fff
     style Customer fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
     style Invoice fill:#FF9800,stroke:#E65100,stroke-width:2px,color:#fff
     style Product fill:#9C27B0,stroke:#6A1B9A,stroke-width:2px,color:#fff
     style Company fill:#F44336,stroke:#C62828,stroke-width:2px,color:#fff
-    style User fill:#00BCD4,stroke:#00838F,stroke-width:2px,color:#fff
+    style UserAgent fill:#00BCD4,stroke:#00838F,stroke-width:2px,color:#fff
     style DB fill:#FFC107,stroke:#F57C00,stroke-width:2px
 ```
+
+> **Note**: Specialist agents are decoupled and do NOT communicate directly with each other. All communication flows through the Orchestrator (Hub-and-Spoke pattern).
 
 ### Tool Call Flow Example
 
