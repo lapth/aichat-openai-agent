@@ -1,10 +1,36 @@
 // src/agents/system.ts
-import { Agent, handoff } from "@openai/agents";
+import { Agent, handoff, OpenAIChatCompletionsModel, setDefaultOpenAIClient } from "@openai/agents";
+import OpenAI from "openai";
 import { createCustomer, getCustomer, listCustomers, updateCustomer, deleteCustomer } from "../tools/customer-tools.js";
 import { createInvoice, getInvoice, listInvoices, updateInvoiceStatus, deleteInvoice } from "../tools/invoice-tools.js";
 import { createUser, getUser, listUsers, updateUser, deleteUser } from "../tools/user-tools.js";
 import { createCompany, getCompany, listCompanies, updateCompany, deleteCompany } from "../tools/company-tools.js";
 import { createProduct, getProduct, listProducts, updateProduct, deleteProduct } from "../tools/product-tools.js";
+
+// --- Model Selection Logic ---
+const getOpenAIConfig = () => {
+  const modelEnv = process.env.USING_MODEL?.toUpperCase();
+  if (modelEnv === 'GEMINI') {
+    return {
+      apiKey: process.env.GEMINI_API_KEY,
+      baseURL: process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta/openai/',
+      model: process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash'
+    };
+  }
+  return {
+    apiKey: process.env.OPENAI_API_KEY,
+    model: 'gpt-4o'
+  };
+};
+
+const config = getOpenAIConfig();
+const openai = new OpenAI({
+  apiKey: config.apiKey,
+  baseURL: config.baseURL
+});
+
+const SELECTED_MODEL = config.model;
+console.log(`🤖 Using Model: ${SELECTED_MODEL}`);
 
 // --- 1. Define Specialist Agents ---
 
@@ -41,30 +67,35 @@ You (InvoiceAgent): [Call list_customers with query "Bob"] → [If found: use cu
 
 export const customerAgent = new Agent({
   name: "CustomerAgent",
+  model: new OpenAIChatCompletionsModel(openai, SELECTED_MODEL),
   instructions: `You are the Customer Specialist. ${commonInstructions}`,
   tools: [createCustomer, getCustomer, listCustomers, updateCustomer, deleteCustomer],
 });
 
 export const invoiceAgent = new Agent({
   name: "InvoiceAgent",
+  model: new OpenAIChatCompletionsModel(openai, SELECTED_MODEL),
   instructions: `You are the Invoice Specialist. ${commonInstructions}`,
   tools: [createInvoice, getInvoice, listInvoices, updateInvoiceStatus, deleteInvoice],
 });
 
 export const userAgent = new Agent({
   name: "UserAgent",
+  model: new OpenAIChatCompletionsModel(openai, SELECTED_MODEL),
   instructions: `You are the User Specialist. ${commonInstructions}`,
   tools: [createUser, getUser, listUsers, updateUser, deleteUser],
 });
 
 export const companyAgent = new Agent({
   name: "CompanyAgent",
+  model: new OpenAIChatCompletionsModel(openai, SELECTED_MODEL),
   instructions: `You are the Company Specialist. ${commonInstructions}`,
   tools: [createCompany, getCompany, listCompanies, updateCompany, deleteCompany],
 });
 
 export const productAgent = new Agent({
   name: "ProductAgent",
+  model: new OpenAIChatCompletionsModel(openai, SELECTED_MODEL),
   instructions: `You are the Product Specialist. ${commonInstructions}`,
   tools: [createProduct, getProduct, listProducts, updateProduct, deleteProduct],
 });
@@ -73,6 +104,7 @@ export const productAgent = new Agent({
 
 export const mainAgent = new Agent({
   name: "Orchestrator",
+  model: new OpenAIChatCompletionsModel(openai, SELECTED_MODEL),
   instructions: `
 You are the Central Orchestrator for a multi-domain system (Customer, Invoice, User, Company, Product).
 Your responsibilities:
